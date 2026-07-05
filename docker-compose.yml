@@ -1,0 +1,13 @@
+services:
+  users_postgres_db:
+    image: postgres:15.18
+    container_name: users_postgres_db-container
+    env_file:
+      - services/user_service/.env
+    ports:
+      - "5440:5432"
+    volumes:
+      - users_pg_data:/var/lib/postgresql/data
+
+volumes:
+  users_pg_data:

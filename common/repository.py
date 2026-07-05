@@ -17,10 +17,15 @@ class BaseDatabaseConfig(ABC, BaseSettings):
     max_connection: int = 20
 
 
-class PostgresConfig(BaseDatabaseConfig):
-    port: int = 5432
+def create_postgres_config(service_name: str) -> type[BaseDatabaseConfig]:
+    class PostgresConfig(BaseDatabaseConfig):
+        port: int = 5432
 
-    model_config = SettingsConfigDict(env_prefix="POSTGRES_", case_sensitive=False)
+        model_config = SettingsConfigDict(
+            env_file=f"services/{service_name}/.env", env_prefix="POSTGRES_", case_sensitive=False, extra="ignore"
+        )
+
+    return PostgresConfig
 
 
 class BaseRepository(ABC):

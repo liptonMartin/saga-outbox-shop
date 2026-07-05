@@ -1,0 +1,99 @@
+from common.utils import check_permission
+import secrets
+from datetime import datetime
+from typing import Annotated
+from uuid import uuid4
+
+import jwt
+from fastapi import APIRouter, HTTPException, status, Response, Cookie
+from fastapi.responses import JSONResponse
+from fastapi.params import Depends
+from fastapi.security import OAuth2PasswordRequestForm
+from pwdlib import PasswordHash
+
+from common.dependencies import get_repository, get_app_config, get_oauth2_scheme, get_user_from_token
+from services.user_service.app.dependencies import get_password_hash
+from services.user_service.app.security import authenticate_user
+from services.user_service.models import Token, AppConfig, TokenType
+from common.models import User, Permission
+from services.user_service.repository.user_repository import UserRepository
+
+router = APIRouter(prefix="/api/v1/users")
+
+
+@router.post("/register")
+async def post_register(
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+    repository: Annotated[UserRepository, Depends(get_repository)],
+    password_hash: Annotated[PasswordHash, Depends(get_password_hash)],
+) -> User:
+    hashed_password = password_hash.hash(form_data.password)
+    uuid = uuid4()
+    await repository.create_user(uuid, form_data.username, hashed_password)
+    return User(id=uuid, username=form_data.username)
+
+
+@router.post("/access_token")
+async def post_access_token(
+    repository: Annotated[UserRepository, Depends(get_repository)],
+    app_config: Annotated[AppConfig, Depends(get_app_config)],
+    refresh_token: str = Cookie(),
+) -> Token:
+    try:
+        payload = jwt.decode(refresh_token, app_config.public_key, algorithms=[app_config.algorithm])
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+
+    if payload["token_type"] != TokenType.REFRESH_TOKEN:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+
+    user = await repository.get_user_by_id(payload["user_id"])
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    exp = datetime.now() + app_config.access_token_duration
+    payload = {"sub": user.id, "iss": "user_service", "exp": exp, "token_type": TokenType.ACCESS_TOKEN,
+               "scopes": user.permissions}
+    token = jwt.encode(payload, app_config.private_key, algorithm=app_config.algorithm)
+
+    return Token(token=token, token_type=TokenType.ACCESS_TOKEN)
+
+
+@router.post("/refresh_token")
+async def post_refresh_token(
+    response: Response,
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+    repository: Annotated[UserRepository, Depends(get_repository)],
+    app_config: Annotated[AppConfig, Depends(get_app_config)],
+    password_hash: Annotated[PasswordHash, Depends(get_password_hash)],
+) -> JSONResponse:
+    dummy_hash = app_config.dummy_hash or password_hash.hash(secrets.token_urlsafe(32))
+    user = await authenticate_user(repository, password_hash, dummy_hash, form_data.username, form_data.password)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+
+    exp = datetime.now() + app_config.refresh_token_duration
+    payload = {"sub": user.id, "iss": "user_service", "exp": exp, "token_type": TokenType.REFRESH_TOKEN}
+    token = jwt.encode(payload, app_config.private_key, algorithm=app_config.algorithm)
+
+    response.set_cookie(
+        key="refresh_token",
+        value=token,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+    )
+
+    await repository.update_refresh_token(user.id, token)
+
+    return JSONResponse(content={"message": "successfully created"}, status_code=status.HTTP_201_CREATED)
+
+
+@router.get("/list")
+async def get_list_users(
+    user: Annotated[User, Depends(get_user_from_token)],
+    repository: Annotated[UserRepository, Depends(get_repository)],
+) -> list[User]:
+    check_permission(user, Permission.ADMIN)
+    users = await repository.list_users()
+    return users
