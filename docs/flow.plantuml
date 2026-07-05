@@ -1,0 +1,58 @@
+@startuml
+!theme plain
+participant orders_service as orders
+participant product_service as products
+participant inventories_service as inventories
+participant billing_service as billing
+
+
+-> orders: /api/v1/orders/create
+
+== Get price ==
+  orders -> products: get price
+  alt #99FF99 success
+    products -> orders: [200] price
+
+  else #FF9999 not found
+    products -> orders: [404] not found
+    <- orders: [404] product not found
+
+  else #FF9999 internal error/timeout
+    products -> orders: [500] internal error / [504] gateway timeout
+    <- orders: [500/504] internal error
+
+  end
+
+== Reserve product ==
+  orders -> inventories: reserve product
+
+  alt #99FF99 success
+    inventories -> orders: [200] success
+
+  else #FF9999 empty inventory
+    inventories -> orders: [400] product not found in inventory
+    <- orders: [400] product not found in inventory
+
+  else #FF9999 internal error/timeout
+    inventories -> orders: [500] internal error / [504] gateway timeout
+    <- orders: [500/504] internal error
+
+  end
+
+== Payment ==
+  orders -> billing: pay product
+
+  alt #99FF99 success
+    billing -> orders: [200] paid for
+    <- orders: [200] order created
+
+  else #FF9999 not enough money
+    billing -> orders: [400] not enough money
+    orders -> inventories: cancel reserve
+    <- orders: [400] not enough money
+
+  else #FF9999 internal error/timeout
+    billing-> orders: [500] internal error / [504] gateway timeout
+    orders -> inventories: cancel reserve
+    <- orders: [500/504] internal error
+@enduml

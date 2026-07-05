@@ -1,2 +1,17 @@
-# saga-outbox-shop
-saga-outbox-shop — a distributed order processing system built with FastAPI, Kafka, and PostgreSQL, demonstrating the Outbox Pattern and Orchestration Saga for reliable event delivery and distributed transaction management.
+## SAGA-outbox shop
+Название проекта связано с паттернами архитектуры, используемые в приложении 
+# Приложение
+Подробные требования описаны в `docs/requirements.md`
+
+Стек:
+
+- Язык: Python 3.13
+- Инфраструктура: Git, Docker, RabbitMQ, PostgreSQL
+- Используемые библиотеки: FastAPI, asynpg, yoyo-migrations, pydantic, aio-pika
+
+Архитектурные решения:
+
+- Orchestration SAGA
+- Outbox pattern
+- Database per Service
+- Repository - паттерн проектирования для работы с базой данных
