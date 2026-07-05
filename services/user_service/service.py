@@ -12,13 +12,13 @@ from services.user_service.routers.auth import router
 
 @asynccontextmanager
 async def lifespan(fastapi_app: FastAPI) -> AsyncGenerator[None, None]:
-    base_lifespan = create_lifespan(UserRepository, PostgresConfig, AppConfig)
+    base_lifespan = create_lifespan(UserRepository, PostgresConfig, AppConfig, fastapi_app)
 
     password_hash = PasswordHash.recommended()
 
     fastapi_app.state.password_hash = password_hash
 
-    async with base_lifespan(fastapi_app):
+    async with base_lifespan():
         yield
 
 

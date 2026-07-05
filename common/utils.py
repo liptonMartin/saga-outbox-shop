@@ -15,9 +15,10 @@ def create_lifespan(
     repository_type: type[BaseRepository],
     repository_config_type: type[BaseDatabaseConfig],
     app_config_type: type[BaseAppConfig],
-) -> Callable[[FastAPI], _AsyncGeneratorContextManager[None, Any]]:
+    fastapi_app: FastAPI,
+) -> Callable[[], _AsyncGeneratorContextManager[None, Any]]:
     @asynccontextmanager
-    async def lifespan(fastapi_app: FastAPI) -> AsyncGenerator[None, Any]:
+    async def lifespan() -> AsyncGenerator[None, Any]:
         app_config = app_config_type()
         oauth2_scheme = OAuth2PasswordBearer(tokenUrl="access_token")
         repository = repository_type(repository_config_type())

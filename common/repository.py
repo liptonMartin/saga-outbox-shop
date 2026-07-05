@@ -35,7 +35,7 @@ class BaseRepository(ABC):
 
     @asynccontextmanager
     async def start_pool(self, pool: asyncpg.Pool | None = None) -> AsyncGenerator[None, None]:
-        self.pool = pool or asyncpg.create_pool(
+        self.pool = pool or await asyncpg.create_pool(
             user=self.config.user,
             password=self.config.password.get_secret_value(),
             host=self.config.host,
