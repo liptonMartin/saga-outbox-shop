@@ -32,3 +32,9 @@ yoyo new ./migrations -m "Create users table"
 ```bash
 yoyo apply
 ```
+
+5. Для отмены миграций используйте
+
+```bash
+yoyo rollback
+```
