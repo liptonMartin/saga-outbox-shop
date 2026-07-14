@@ -38,5 +38,6 @@ class Token(BaseModel):
     token_type: TokenType
 
 
-class UserWithPassword(User):
-    password: SecretStr
+class UserFullInfo(User):
+    hash_password: str
+    hash_refresh_token: str | None

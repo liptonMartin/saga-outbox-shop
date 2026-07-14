@@ -38,6 +38,7 @@ class BaseRepository(ABC):
         self.pool = pool or await asyncpg.create_pool(
             user=self.config.user,
             password=self.config.password.get_secret_value(),
+            database=self.config.db,
             host=self.config.host,
             port=self.config.port,
             max_size=self.config.max_connection,
@@ -55,8 +56,9 @@ class BaseRepository(ABC):
             yield connection
 
     @asynccontextmanager
-    async def transaction(self, connection: asyncpg.Connection | None = None) -> AsyncGenerator[
-        asyncpg.Connection, None]:
+    async def transaction(
+        self, connection: asyncpg.Connection | None = None
+    ) -> AsyncGenerator[asyncpg.Connection, None]:
         if connection:
             async with connection.transaction():
                 yield connection
@@ -65,14 +67,23 @@ class BaseRepository(ABC):
             async with connection.transaction():
                 yield connection
 
-    @staticmethod
-    async def execute(connection: asyncpg.Connection, query: str) -> str:
-        return await connection.execute(query)
+    async def execute(self, query: str, *placeholders, connection: asyncpg.Connection | None = None) -> str:
+        if connection:
+            return await connection.execute(query, *placeholders)
 
-    @staticmethod
-    async def fetch(connection: asyncpg.Connection, query: str) -> list[asyncpg.Record]:
-        return await connection.fetch(query)
+        async with self.transaction() as connection:
+            return await connection.execute(query, *placeholders)
 
-    @staticmethod
-    async def fetchrow(connection: asyncpg.Connection, query: str) -> asyncpg.Record | None:
-        return await connection.fetchrow(query)
+    async def fetch(self, query: str, *placeholders, connection: asyncpg.Connection | None = None) -> list[asyncpg.Record]:
+        if connection:
+            return await connection.fetch(query, *placeholders)
+
+        async with self.connection() as connection:
+            return await connection.fetch(query, *placeholders)
+
+    async def fetchrow(self, query: str, *placeholders, connection: asyncpg.Connection | None = None) -> asyncpg.Record | None:
+        if connection:
+            return await connection.fetchrow(query, *placeholders)
+
+        async with self.connection() as connection:
+            return await connection.fetchrow(query, *placeholders)

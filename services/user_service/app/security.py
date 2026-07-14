@@ -15,4 +15,6 @@ async def authenticate_user(
     if not user:
         password_hash.verify(password, dummy_hash)
         return None
+    if not password_hash.verify(password, user.hash_password):
+        return None
     return user

@@ -9,7 +9,7 @@ from abc import ABC
 
 class BaseAppConfig(ABC, BaseSettings):
     public_key_file: pathlib.Path
-    algorithm: str = "RSA256"
+    algorithm: str = "RS256"
 
     @computed_field
     @property
@@ -28,6 +28,6 @@ class Permission(StrEnum):
 
 
 class User(BaseModel):
-    id: UUID
+    id: str
     username: str
     permissions: list[Permission] = []
