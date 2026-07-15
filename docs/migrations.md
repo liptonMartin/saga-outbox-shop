@@ -21,6 +21,10 @@ export POSTGRES_PORT=
 
 > Для удобства можете воспользоваться скриптом build/pre_migrations.sh
 
+```bash
+source ./buiild/pre_migration.sh
+```
+
 2. Для создания новой миграции используйте
 
 ```bash
