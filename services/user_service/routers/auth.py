@@ -1,3 +1,5 @@
+from common.models import Role
+from fastapi import Body
 from common.utils import check_permission
 import secrets
 from datetime import datetime
@@ -63,7 +65,7 @@ async def post_access_token(
         "exp": exp,
         "token_type": TokenType.ACCESS_TOKEN,
         "username": user.username,
-        "scopes": user.permissions
+        "scopes": user.roles
     }
     token = jwt.encode(payload, app_config.private_key, algorithm=app_config.algorithm)
 
@@ -107,6 +109,40 @@ async def get_list_users(
     user: Annotated[User, Depends(get_user_from_token)],
     repository: Annotated[UserRepository, Depends(get_repository)],
 ) -> list[User]:
-    check_permission(user, Permission.ADMIN)
+    check_permission(user, Permission.VIEW_USERS)
     users = await repository.list_users()
     return users
+
+
+@router.get("/{user_id}")
+async def get_user(
+    user_id: str,
+    current_user: Annotated[User, Depends(get_user_from_token)],
+    repository: Annotated[UserRepository, Depends(get_repository)]
+) -> User:
+    check_permission(current_user, Permission.VIEW_USERS)
+
+    user = await repository.get_user(user_id=user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    return user
+
+
+@router.post("/edit_roles")
+async def edit_roles(
+    current_user: Annotated[User, Depends(get_user_from_token)],
+    repository: Annotated[UserRepository, Depends(get_repository)],
+    roles: Annotated[list[Role], Body()],
+    user_id: Annotated[str, Body()],
+) -> User:
+    check_permission(current_user, Permission.CHANGE_ROLES)
+
+    user = await repository.get_user(user_id=user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    existed_roles = user.roles
+    roles = list(set(roles) | set(existed_roles))
+    await repository.update_user_roles(user_id, roles)
+    user.roles = roles
+    return user

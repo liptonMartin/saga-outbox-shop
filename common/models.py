@@ -1,6 +1,5 @@
 import pathlib
 from enum import StrEnum
-from uuid import UUID
 
 from pydantic import BaseModel, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -21,13 +20,15 @@ class BaseAppConfig(ABC, BaseSettings):
 
 
 class Permission(StrEnum):
-    READ = "read"
-    WRITE = "write"
-    DELETE = "delete"
-    ADMIN = "admin"
+    VIEW_USERS = "view_users"  # просматривать пользователей
+    CHANGE_ROLES = "change_roles"  # менять роли у пользователей
+
+
+class Role(StrEnum):
+    STAFF = "staff"  # возможность работы с пользователями
 
 
 class User(BaseModel):
     id: str
     username: str
-    permissions: list[Permission] = []
+    roles: list[Role] = []

@@ -28,7 +28,7 @@ source ./buiild/pre_migration.sh
 2. Для создания новой миграции используйте
 
 ```bash
-yoyo new ./migrations -m "Create users table"
+yoyo new -m "Create users table"
 ```
 
 3. Заполните созданную миграцию в ./migrations

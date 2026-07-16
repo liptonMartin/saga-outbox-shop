@@ -18,6 +18,8 @@ steps = [
                 permissions <@ ARRAY['read', 'write', 'delete', 'admin']::VARCHAR[]
             )
         );
-        """
+        """,
+        "DROP TABLE users;"
     ),
+
 ]

@@ -28,4 +28,4 @@ def get_user_from_token(
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
-    return User(id=payload["sub"], username=payload["username"], permissions=payload["scopes"])
+    return User(id=payload["sub"], username=payload["username"], roles=payload["scopes"])

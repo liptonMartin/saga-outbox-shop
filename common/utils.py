@@ -1,3 +1,5 @@
+from common.consts import ROLES_PERMISSIONS
+import itertools
 from fastapi.security import OAuth2PasswordBearer
 
 from common.models import BaseAppConfig, User, Permission
@@ -33,5 +35,7 @@ def create_lifespan(
 
 
 def check_permission(user: User, permission: Permission) -> None:
-    if permission not in user.permissions:
+    nested_permissions = [ROLES_PERMISSIONS[role] for role in user.roles]
+    user_permissions = itertools.chain.from_iterable(nested_permissions)
+    if permission not in user_permissions:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")

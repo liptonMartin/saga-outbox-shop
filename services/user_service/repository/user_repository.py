@@ -1,3 +1,5 @@
+from common.models import Role
+from common.models import Permission
 import json
 
 import asyncpg
@@ -8,7 +10,7 @@ from common.models import User
 
 
 class UserRepository(BaseRepository):
-    async def get_user(self, user_id: str | None, username: str | None) -> User | None:
+    async def get_user(self, user_id: str | None = None, username: str | None = None) -> User | None:
         if not user_id and not username:
             raise RuntimeError("Failed to get user, because nothing user_id and username is None")
 
@@ -47,9 +49,13 @@ class UserRepository(BaseRepository):
         records = await self.fetch(query, limit)
         return [self.__create_user_from_record(record) for record in records]
 
+    async def update_user_roles(self, user_id: str, roles: list[Role]) -> None:
+        query = self.__create_query_update_user_roles()
+        await self.execute(query, roles, user_id)
+
     @staticmethod
     def __create_user_from_record(record: asyncpg.Record) -> User:
-        return User(id=record["id"], username=record["username"], permissions=record["permissions"] or [])
+        return User(id=record["id"], username=record["username"], roles=record["roles"])
 
     @staticmethod
     def __create_user_full_info(record: asyncpg.Record) -> UserFullInfo:
@@ -79,3 +85,7 @@ class UserRepository(BaseRepository):
     @staticmethod
     def __create_query_update_refresh_token() -> str:
         return "UPDATE users SET refresh_token = $1 WHERE id = $2"
+
+    @staticmethod
+    def __create_query_update_user_roles() -> str:
+        return "UPDATE users SET roles = $1 WHERE id = $2"
